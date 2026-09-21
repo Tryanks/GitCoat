@@ -1,0 +1,175 @@
+# English UI copy (default and fallback locale). Keys must match locales/zh-CN.yml
+# exactly; tests/l10n.rs enforces parity. Git data (names, messages, OIDs)
+# is never translated.
+_version: 1
+
+layout:
+  title: "%{name} · GitCoat"
+
+nav:
+  label: "Sections"
+  code: "Code"
+  commits: "Commits"
+
+theme:
+  toggle: "Toggle theme"
+  to_dark: "Switch to dark theme"
+  to_light: "Switch to light theme"
+
+lang:
+  label: "Language"
+
+error:
+  back_home: "Back to repository"
+  back_default: "Back to the default branch"
+  browse_root: "Browse the root of %{name}"
+  not_on_ref: "%{path} does not exist on %{name}."
+  not_found:
+    title: "Page not found"
+    text: "Nothing exists at this address."
+  bad_request:
+    title: "Bad request"
+    text: "The request could not be understood."
+  internal:
+    title: "Something went wrong"
+    text: "The repository could not be read. Please try again later."
+  ref_not_found:
+    title: "Ref not found"
+    text: "No branch, tag or commit matches the requested ref."
+  path_not_found:
+    title: "Path not found"
+  file_not_found:
+    title: "File not found"
+
+refs:
+  switch: "Switch branch or tag"
+  search: "Find a branch or tag"
+  branches: "Branches"
+  tags: "Tags"
+  no_branches: "No branches"
+  no_tags: "No tags"
+  no_match: "Nothing matches"
+
+action:
+  copy_clone_url: "Copy clone URL"
+  copy_path: "Copy path"
+  copy_full_id: "Copy full id"
+  permalink: "Permalink"
+  raw: "Raw"
+  rendered: "Rendered"
+  source: "Source"
+  view: "View"
+  browse_files: "Browse files"
+  view_file: "View file"
+  view_raw: "View the raw file"
+  download: "Download"
+
+copy:
+  copied: "Copied"
+  fallback_mac: "Press ⌘+C"
+  fallback_other: "Press Ctrl+C"
+
+tree:
+  path: "Path"
+  badge:
+    symlink: "symlink"
+    executable: "executable"
+    submodule: "submodule"
+    unsupported_name: "unsupported name"
+  empty_dir: "This directory is empty."
+  truncated: "Only the first %{count} entries are shown."
+  readme_truncated: "This README was cut off because it is too large."
+  no_commits: "No commits yet"
+  empty_repo: "This repository is empty. Push a commit to see it here."
+
+blob:
+  badge:
+    text: "Text"
+    markdown: "Markdown"
+    image: "Image"
+    binary: "Binary"
+    executable: "Executable"
+    symlink: "Symlink"
+    submodule: "Submodule"
+  lines:
+    one: "%{count} line"
+    other: "%{count} lines"
+  submodule_at: "Submodule at commit"
+  symlink_to: "Symbolic link to"
+  symlink_note: "The link target is shown as recorded in the repository; it is not followed."
+  too_large: "This file is too large to preview (%{size})."
+  empty: "This file is empty."
+  binary: "Binary file · %{size}"
+  truncated_bytes: "Preview truncated — showing the first %{shown} of %{total}."
+  truncated_lines: "Preview truncated — showing the first %{lines} lines (%{shown}) of %{total}."
+  not_utf8: "Not valid UTF-8; shown with replacement characters."
+  is_directory: "This path is a directory."
+  open_in_tree: "Open it in the tree view"
+
+commits:
+  heading: "Commits on %{name}"
+  committed: "committed"
+  merge: "merge"
+  none_on_page: "No commits on this page"
+  ends_before: "The history of %{name} ends before page %{page}."
+  back_to_first: "Back to page 1"
+  history_default: "History of the default branch"
+  pagination: "Pagination"
+  newer: "Newer"
+  older: "Older"
+  page: "Page %{page}"
+
+commit:
+  commit: "Commit"
+  author: "Author"
+  committer: "Committer"
+  parents: "Parents"
+  root: "Root commit (compared against the empty tree)"
+  merge_notice:
+    before: "Merge commit: showing changes against the first parent"
+    after: "."
+  files_changed:
+    one: "%{count} file changed"
+    other: "%{count} files changed"
+  no_changes: "No changes"
+  status:
+    added: "Added"
+    deleted: "Deleted"
+    modified: "Modified"
+    renamed: "Renamed"
+    copied: "Copied"
+    mode_changed: "Mode changed"
+  stat:
+    binary: "binary"
+    mode: "mode"
+    unchanged: "unchanged"
+  binary_not_shown: "Binary file not shown"
+  diff_truncated_file: "Diff truncated (file larger than limit)"
+  mode_only: "Only the file mode changed; the contents are identical"
+  renamed_as_is: "File renamed without content changes"
+  no_content_changes: "No content changes"
+  diff_truncated: "This diff was cut off: some files or hunks are not shown (limits: %{files} files, %{mib} MiB of content)."
+
+raw:
+  too_large: "This file is larger than the %{mib} MiB limit for raw downloads."
+
+time:
+  just_now: "just now"
+  minutes_ago:
+    one: "%{count} minute ago"
+    other: "%{count} minutes ago"
+  hours_ago:
+    one: "%{count} hour ago"
+    other: "%{count} hours ago"
+  days_ago:
+    one: "%{count} day ago"
+    other: "%{count} days ago"
+  weeks_ago:
+    one: "%{count} week ago"
+    other: "%{count} weeks ago"
+  months_ago:
+    one: "%{count} month ago"
+    other: "%{count} months ago"
+  years_ago:
+    one: "%{count} year ago"
+    other: "%{count} years ago"

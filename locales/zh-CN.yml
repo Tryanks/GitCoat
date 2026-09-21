@@ -1,0 +1,176 @@
+# Simplified Chinese UI copy. Keys must match locales/en.yml exactly;
+# tests/l10n.rs enforces parity. Chinese has no plural forms, so `.one` and
+# `.other` carry the same text. Git data (names, messages, OIDs) is never
+# translated; proper nouns (GitCoat, README, Markdown, UTF-8) stay as-is.
+_version: 1
+
+layout:
+  title: "%{name} · GitCoat"
+
+nav:
+  label: "页面导航"
+  code: "代码"
+  commits: "提交"
+
+theme:
+  toggle: "切换主题"
+  to_dark: "切换到深色主题"
+  to_light: "切换到浅色主题"
+
+lang:
+  label: "语言"
+
+error:
+  back_home: "返回仓库"
+  back_default: "返回默认分支"
+  browse_root: "浏览 %{name} 的根目录"
+  not_on_ref: "%{name} 上不存在 %{path}。"
+  not_found:
+    title: "页面未找到"
+    text: "该地址下没有任何内容。"
+  bad_request:
+    title: "请求无效"
+    text: "无法处理该请求。"
+  internal:
+    title: "出错了"
+    text: "无法读取仓库，请稍后重试。"
+  ref_not_found:
+    title: "未找到引用"
+    text: "没有与所请求引用匹配的分支、标签或提交。"
+  path_not_found:
+    title: "未找到路径"
+  file_not_found:
+    title: "未找到文件"
+
+refs:
+  switch: "切换分支或标签"
+  search: "查找分支或标签"
+  branches: "分支"
+  tags: "标签"
+  no_branches: "暂无分支"
+  no_tags: "暂无标签"
+  no_match: "没有匹配项"
+
+action:
+  copy_clone_url: "复制克隆地址"
+  copy_path: "复制路径"
+  copy_full_id: "复制完整 ID"
+  permalink: "永久链接"
+  raw: "原始文件"
+  rendered: "渲染视图"
+  source: "源码"
+  view: "查看方式"
+  browse_files: "浏览文件"
+  view_file: "查看文件"
+  view_raw: "查看原始文件"
+  download: "下载"
+
+copy:
+  copied: "已复制"
+  fallback_mac: "请按 ⌘+C"
+  fallback_other: "请按 Ctrl+C"
+
+tree:
+  path: "路径"
+  badge:
+    symlink: "符号链接"
+    executable: "可执行"
+    submodule: "子模块"
+    unsupported_name: "不支持的文件名"
+  empty_dir: "此目录为空。"
+  truncated: "仅显示前 %{count} 个条目。"
+  readme_truncated: "README 过大，已被截断。"
+  no_commits: "暂无提交"
+  empty_repo: "此仓库为空。推送一个提交后即可在此查看。"
+
+blob:
+  badge:
+    text: "文本"
+    markdown: "Markdown"
+    image: "图片"
+    binary: "二进制"
+    executable: "可执行"
+    symlink: "符号链接"
+    submodule: "子模块"
+  lines:
+    one: "%{count} 行"
+    other: "%{count} 行"
+  submodule_at: "子模块，指向提交"
+  symlink_to: "符号链接，指向"
+  symlink_note: "链接目标按仓库中记录的原样显示，不会被跟随。"
+  too_large: "文件过大，无法预览（%{size}）。"
+  empty: "此文件为空。"
+  binary: "二进制文件 · %{size}"
+  truncated_bytes: "预览已截断，仅显示前 %{shown}（共 %{total}）。"
+  truncated_lines: "预览已截断，仅显示前 %{lines} 行（%{shown}，共 %{total}）。"
+  not_utf8: "不是有效的 UTF-8，已用替换字符显示。"
+  is_directory: "此路径是一个目录。"
+  open_in_tree: "在目录视图中打开"
+
+commits:
+  heading: "%{name} 的提交"
+  committed: "提交于"
+  merge: "合并"
+  none_on_page: "此页没有提交"
+  ends_before: "%{name} 的历史在第 %{page} 页之前已结束。"
+  back_to_first: "返回第 1 页"
+  history_default: "默认分支的提交历史"
+  pagination: "分页"
+  newer: "上一页"
+  older: "下一页"
+  page: "第 %{page} 页"
+
+commit:
+  commit: "提交"
+  author: "作者"
+  committer: "提交者"
+  parents: "父提交"
+  root: "根提交（与空树比较）"
+  merge_notice:
+    before: "合并提交：显示相对于第一个父提交"
+    after: "的变更。"
+  files_changed:
+    one: "%{count} 个文件已更改"
+    other: "%{count} 个文件已更改"
+  no_changes: "无更改"
+  status:
+    added: "已新增"
+    deleted: "已删除"
+    modified: "已修改"
+    renamed: "已重命名"
+    copied: "已复制"
+    mode_changed: "模式已更改"
+  stat:
+    binary: "二进制"
+    mode: "模式"
+    unchanged: "内容未变"
+  binary_not_shown: "二进制文件不显示"
+  diff_truncated_file: "差异已截断（文件超过限制）"
+  mode_only: "仅文件模式更改，内容相同"
+  renamed_as_is: "文件已重命名，内容未变"
+  no_content_changes: "内容无更改"
+  diff_truncated: "差异已截断：部分文件或代码块未显示（限制：%{files} 个文件，%{mib} MiB 内容）。"
+
+raw:
+  too_large: "此文件超过原始下载的 %{mib} MiB 限制。"
+
+time:
+  just_now: "刚刚"
+  minutes_ago:
+    one: "%{count} 分钟前"
+    other: "%{count} 分钟前"
+  hours_ago:
+    one: "%{count} 小时前"
+    other: "%{count} 小时前"
+  days_ago:
+    one: "%{count} 天前"
+    other: "%{count} 天前"
+  weeks_ago:
+    one: "%{count} 周前"
+    other: "%{count} 周前"
+  months_ago:
+    one: "%{count} 个月前"
+    other: "%{count} 个月前"
+  years_ago:
+    one: "%{count} 年前"
+    other: "%{count} 年前"

@@ -1,0 +1,46 @@
+[package]
+name = "gitcoat"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Read-only web UI for a single Git repository"
+repository = "https://github.com/Tryanks/GitCoat"
+authors = ["Tryanks"]
+rust-version = "1.98"
+
+[lib]
+name = "gitcoat"
+path = "src/lib.rs"
+
+[[bin]]
+name = "gitcoat"
+path = "src/main.rs"
+
+[dependencies]
+topcoat = { version = "=0.8.1", default-features = false, features = ["asset", "router", "serve", "view"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "process", "io-util", "signal", "sync", "time", "fs"] }
+clap = { version = "4", features = ["derive", "env"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+bytes = "1"
+http = "1"
+http-body-util = "0.1"
+tokio-util = { version = "0.7", features = ["io"] }
+form_urlencoded = "1"
+percent-encoding = "2"
+thiserror = "2"
+memchr = "2"
+gix = { version = "=0.87.1", default-features = false, features = ["blob-diff", "revision", "max-performance-safe", "sha1", "sha256"] }
+jiff = { version = "0.2", default-features = false, features = ["std"] }
+rushdown = "=0.18.0"
+ammonia = "4"
+syntect = { version = "=5.3.0", default-features = false, features = ["default-fancy"] }
+rust-i18n = "4"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1

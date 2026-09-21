@@ -1,0 +1,8 @@
+# Minimal Caddy reverse proxy for GitCoat.
+# TLS certificates are obtained and renewed automatically for the site name.
+# GitCoat must be served at the root path ("/"); sub-path mounts are not supported.
+# If GitCoat runs in a container, start it with --bind 0.0.0.0:3000 and point
+# reverse_proxy at the container's address instead of 127.0.0.1.
+git.example.com {
+	reverse_proxy 127.0.0.1:3000
+}
