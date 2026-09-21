@@ -3355,7 +3355,6 @@ dependencies = [
  "topcoat-core",
  "topcoat-core-macro",
  "topcoat-font",
- "topcoat-font-macro",
  "topcoat-mail",
  "topcoat-router",
  "topcoat-router-macro",
@@ -3451,30 +3450,6 @@ dependencies = [
  "topcoat-router",
  "topcoat-view",
  "topcoat-view-macro",
-]
-
-[[package]]
-name = "topcoat-font-grammar"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71d34dcf61115028a2db199c479c13cffd5a945c60b58c4ee4236c6e92b0adc6"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
- "topcoat-core-grammar",
- "topcoat-font",
-]
-
-[[package]]
-name = "topcoat-font-macro"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e71c82ac7e47646de69aafada34b71b825854b42763c798393dd7bfdeaadde12"
-dependencies = [
- "quote",
- "syn 2.0.119",
- "topcoat-font-grammar",
 ]
 
 [[package]]

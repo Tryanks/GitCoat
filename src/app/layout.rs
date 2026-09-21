@@ -3,7 +3,6 @@
 
 use topcoat::{
     Result,
-    asset::{Asset, asset},
     context::{Cx, app_context},
     router::{
         HeaderValue, Slot, StatusCode,
@@ -18,14 +17,10 @@ use topcoat::{
 use super::{
     AppState,
     components::{icon_moon, icon_repo, icon_sun},
+    static_files::static_url,
     url::{commits_url, lang_url, parse_query},
 };
 use crate::l10n::{Lang, lang, tr};
-
-/// The stylesheet (written by the styling worker).
-pub const APP_CSS: Asset = asset!("../../static/app.css");
-/// The tiny script for the theme toggle, copy buttons and the ref picker.
-pub const APP_JS: Asset = asset!("../../static/app.js");
 
 /// Applies the stored theme before first paint so there is no flash. Kept
 /// free of `<`, `>` and `&` so it needs no escaping considerations.
@@ -67,6 +62,9 @@ pub async fn root_layout(cx: &Cx, slot: Slot<'_>) -> Result<impl View> {
     };
 
     let vary = (VARY, VARY_VALUE);
+    // Content-hashed URLs of the embedded stylesheet and script.
+    let css_href = static_url("app.css");
+    let js_src = static_url("app.js");
 
     Ok(view! {
         (vary)
@@ -76,9 +74,9 @@ pub async fn root_layout(cx: &Cx, slot: Slot<'_>) -> Result<impl View> {
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1">
                 <title>(title)</title>
-                <link rel="stylesheet" href=(APP_CSS)>
+                <link rel="stylesheet" href=(css_href)>
                 <script>(Unescaped::new_unchecked(THEME_SCRIPT))</script>
-                <script src=(APP_JS) defer=""></script>
+                <script src=(js_src) defer=""></script>
             </head>
             <body>
                 <header class="topbar">

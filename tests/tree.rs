@@ -2,7 +2,9 @@
 
 mod common;
 
-use common::{fixtures::TempRepo, get, stylesheet_href, test_app, test_app_with, test_config};
+use common::{
+    fixtures::TempRepo, get, script_src, stylesheet_href, test_app, test_app_with, test_config,
+};
 use gitcoat::app::url::tree_url;
 use http::StatusCode;
 
@@ -85,12 +87,25 @@ async fn home_renders_repo_name_and_file_list() {
 }
 
 #[tokio::test]
-async fn assets_are_served() {
+async fn embedded_static_files_are_served_with_immutable_caching() {
     let repo = TempRepo::rich();
     let app = test_app(&repo.path);
     let home = get(&app, "/").await;
     let href = stylesheet_href(&home.body).expect("stylesheet link");
-    assert!(href.starts_with("/_topcoat/assets/"), "{href}");
+    assert!(
+        href.starts_with("/_static/app-") && href.ends_with(".css"),
+        "{href}"
+    );
+    let src = script_src(&home.body).expect("script src");
+    assert!(
+        src.starts_with("/_static/app-") && src.ends_with(".js"),
+        "{src}"
+    );
+    assert!(
+        home.body
+            .contains(&format!("<script src=\"{src}\" defer=\"\">"))
+    );
+
     let css = get(&app, &href).await;
     assert_eq!(css.status, StatusCode::OK);
     assert!(
@@ -98,10 +113,47 @@ async fn assets_are_served() {
         "{}",
         css.content_type()
     );
-    assert!(
-        home.body.contains("<script src=\"/_topcoat/assets/"),
-        "script tag"
+    assert_eq!(
+        css.header("cache-control"),
+        "public, max-age=31536000, immutable"
     );
+    assert_eq!(css.header("x-content-type-options"), "nosniff");
+    assert_eq!(css.bytes, include_bytes!("../static/app.css"));
+
+    let js = get(&app, &src).await;
+    assert_eq!(js.status, StatusCode::OK);
+    assert!(
+        js.content_type().starts_with("text/javascript"),
+        "{}",
+        js.content_type()
+    );
+    assert_eq!(
+        js.header("cache-control"),
+        "public, max-age=31536000, immutable"
+    );
+    assert_eq!(js.bytes, include_bytes!("../static/app.js"));
+}
+
+#[tokio::test]
+async fn unknown_static_names_are_not_found() {
+    let repo = TempRepo::rich();
+    let app = test_app(&repo.path);
+    for url in [
+        "/_static/app.css",
+        "/_static/app-0000000000000000.css",
+        "/_static/nope.js",
+        "/_static/",
+        "/_static",
+        "/_static/../Cargo.toml",
+        "/_static/..%2FCargo.toml",
+        "/_static/%2e%2e/Cargo.toml",
+        "/_static/../../src/main.rs",
+    ] {
+        let response = get(&app, url).await;
+        assert_eq!(response.status, StatusCode::NOT_FOUND, "{url}");
+        assert!(!response.body.contains("[package]"), "{url}");
+        assert!(!response.body.contains("fn main"), "{url}");
+    }
 }
 
 #[tokio::test]

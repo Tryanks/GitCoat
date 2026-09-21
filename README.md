@@ -4,7 +4,7 @@
 
 GitCoat is a **single-repository, read-only** Git web browser: it presents one local Git repository (bare or a working checkout) the way a GitHub repository page does — directory tree, file preview (Markdown rendering, syntax highlighting), README, commit history and commit diffs. The look and feel is close to lightweight Git front-ends such as gong / Givy: light/dark theme, system fonts, thin borders, nothing fancy.
 
-It is a single binary plus an asset directory. It needs no database, no Node toolchain, and no `git` executable at runtime.
+It is a **single self-contained binary**: the stylesheet and script are compiled in. It needs no database, no Node toolchain, no asset directory and no `git` executable at runtime.
 
 ### Explicit non-goals
 
@@ -25,8 +25,8 @@ GitCoat's scope is deliberately narrow. The following features are **not** provi
 | Component | Version | Notes |
 |---|---|---|
 | Rust | 1.98.1 (pinned in `rust-toolchain.toml`), edition 2024 | |
-| [topcoat](https://crates.io/crates/topcoat) | `=0.8.1`, features limited to `asset` / `router` / `serve` / `view` | Web framework; `view!` templates, routing, static asset bundling |
-| topcoat-cli | 0.8.1 | Used at build time for `topcoat asset bundle` and `topcoat fmt` |
+| [topcoat](https://crates.io/crates/topcoat) | `=0.8.1`, features limited to `router` / `serve` / `view` | Web framework; `view!` templates, routing |
+| topcoat-cli | 0.8.1 | Development only, for `topcoat fmt` (formats `view!` bodies); not needed to build |
 | [gix](https://crates.io/crates/gix) (gitoxide) | `=0.87.1`, pure Rust, no network features enabled | Reads refs, objects, trees, commits, diffs; **no git binary needed at runtime** |
 | rushdown + ammonia | — | Markdown (GFM) rendering + HTML sanitisation |
 | syntect | `default-fancy` (pure-Rust regex, no onig) | Highlighting for code and Markdown code blocks |
@@ -36,25 +36,41 @@ GitCoat's scope is deliberately narrow. The following features are **not** provi
 ## Building
 
 ```sh
-# 1. Install the topcoat CLI (one-off)
-cargo install topcoat-cli --version 0.8.1 --locked
-
-# 2. Build the release binary and bundle the assets
 scripts/build.sh
 ```
 
-`scripts/build.sh` runs `cargo build --release --locked`, then `topcoat asset bundle --release`, which scans the binary for `asset!` declarations and generates the asset files, and finally assembles:
+`scripts/build.sh` runs `cargo build --release --locked --bin gitcoat` and copies the result to:
 
 ```
 dist/
-├── gitcoat            # executable
-└── assets/
-    ├── manifest.toml
-    ├── app-<hash>.css
-    └── app-<hash>.js
+└── gitcoat            # the whole deployment
 ```
 
-**`gitcoat` and `assets/` must sit side by side and come from the same build**: the binary looks up the manifest by the asset ids embedded in it, and a missing asset panics when a page is rendered. To deploy, copy the whole `dist/` directory. If the asset directory lives elsewhere, point to it with `--assets-dir <DIR>`.
+Plain `cargo build --release` works just as well; the script only exists so the smoke test and the release workflow agree on where the binary lands.
+
+### Single binary
+
+`static/app.css` and `static/app.js` are embedded at compile time with `include_bytes!` (`src/app/static_files.rs`) and served from `/_static/app-<hash>.css` and `/_static/app-<hash>.js`. The `<hash>` is a 64-bit FNV-1a digest of the file's bytes, computed once at startup, so the URL changes whenever the file changes and the responses can be cached forever (`Cache-Control: public, max-age=31536000, immutable`). Only those two exact names are served; any other `/_static/…` path is a 404, and nothing is read from disk. To deploy, copy the one file `gitcoat` anywhere and run it — no asset directory, no working-directory requirement.
+
+The `topcoat` CLI (`cargo install topcoat-cli --version 0.8.1 --locked`) is only needed by contributors, for `topcoat fmt`.
+
+### Releases
+
+Every `v*` tag is built by `.github/workflows/release.yml` and published on the [GitHub Releases](https://github.com/Tryanks/GitCoat/releases) page as one archive per target:
+
+```
+gitcoat-<version>-<target>.tar.gz     # Linux, macOS, FreeBSD
+gitcoat-<version>-<target>.zip        # Windows
+SHA256SUMS                            # checksums of every archive
+```
+
+Each archive contains just `gitcoat` (or `gitcoat.exe`), `LICENSE` and `README.md`. Targets: `x86_64` and `aarch64` for Linux (glibc and static musl), macOS and Windows, plus `armv7` (musl), `riscv64` and `loongarch64` Linux and `x86_64` FreeBSD. The musl archives are fully static and run on any Linux distribution.
+
+To verify a download:
+
+```sh
+sha256sum -c --ignore-missing SHA256SUMS
+```
 
 ## Running
 
@@ -70,7 +86,6 @@ dist/gitcoat --repo /srv/git/project.git --bind 127.0.0.1:3000 \
 | `--name <NAME>` | `GITCOAT_NAME` | Directory name with the `.git` suffix stripped | Repository name shown in the page title and header |
 | `--description <TEXT>` | `GITCOAT_DESCRIPTION` | none | One-line description shown in the header |
 | `--clone-url <URL>` | `GITCOAT_CLONE_URL` | none | Clone URL shown to visitors (with a copy button); display only |
-| `--assets-dir <DIR>` | `GITCOAT_ASSETS_DIR` | `assets/` next to the executable | Asset directory |
 | `--help` / `--version` | — | — | Help / version |
 
 Precedence: **command-line flags > environment variables > defaults**.
@@ -113,7 +128,7 @@ git.example.com {
 ```
 
 - Caddy obtains and renews certificates automatically.
-- **Only mounting at the root path `/` is supported**; sub-path deployments such as `https://example.com/git/` are not: all in-page links are root-relative (`/tree?...`) and assets are served from `/_topcoat/assets/...`.
+- **Only mounting at the root path `/` is supported**; sub-path deployments such as `https://example.com/git/` are not: all in-page links are root-relative (`/tree?...`) and the static files are served from `/_static/...`.
 - When running GitCoat on the host, bind to `127.0.0.1` (the default) so only Caddy can reach it; in a container, use `--bind 0.0.0.0:3000` and point `reverse_proxy` at the container address.
 - Pages do not depend on the `Host` header or proxy headers to build links, and use no absolute URLs, so changing the domain requires no configuration change.
 
@@ -129,7 +144,7 @@ git.example.com {
 | `GET /commit/<oid>` | Single commit: metadata, parents, file list and diff (merge commits are compared against the first parent) |
 | `GET /lang?set=<tag>&back=<path>` | Pin the UI language in a cookie and redirect (303) back to `back`; see "Localization" |
 | `GET /healthz` | `200 ok\n`, `text/plain` |
-| `GET /_topcoat/assets/*` | Static assets (content-hashed file names) |
+| `GET /_static/<name>` | The embedded stylesheet and script (content-hashed names, immutable caching); everything else is 404 |
 
 The `ref` parameter accepts only a **full refname** (`refs/heads/x`, `refs/tags/x`) or a **full hexadecimal commit OID** (40 characters for SHA-1 / 64 for SHA-256); annotated tags are peeled to the commit they point to. Forms such as `main`, `HEAD`, abbreviated OIDs or `x^{tree}` always return 404 and are never parsed as revspecs. `path` must be a normalised relative path: no leading `/`, empty segments, `.` or `..`, otherwise 400.
 
@@ -185,7 +200,7 @@ All limits live in `src/limits.rs`:
 
 ## Tests and checks
 
-Gates that must pass before committing:
+`.github/workflows/ci.yml` runs the formatting check, clippy and the tests on every push and pull request to `main`. Gates that must pass before committing:
 
 ```sh
 cargo fmt --check
@@ -201,7 +216,7 @@ End-to-end smoke test (runs `scripts/build.sh`; set `SKIP_BUILD=1` to reuse an e
 scripts/smoke.sh
 ```
 
-It uses `git` to create a temporary repository (a few files, a Markdown README, a subdirectory, 3 commits, 1 tag), copies `dist/` to a temporary directory, starts `gitcoat` from **a different working directory**, then uses curl to check the status codes and key content of `/`, `/tree`, `/blob`, `/raw`, `/commits`, `/commit/<oid>`, `/healthz`, static assets, and 400/404 responses one by one. If `caddy` is on the PATH, it also starts a temporary reverse proxy to verify that access through the proxy works and page links stay relative; otherwise it prints `Caddy not found: proxy check skipped`.
+It uses `git` to create a temporary repository (a few files, a Markdown README, a subdirectory, 3 commits, 1 tag), copies **only** `dist/gitcoat` into an empty temporary directory, starts it from **a different working directory**, then uses curl to check the status codes and key content of `/`, `/tree`, `/blob`, `/raw`, `/commits`, `/commit/<oid>`, `/healthz`, the `/_static/…` URLs found in the HTML (including their cache headers), and 400/404 responses one by one. If `caddy` is on the PATH, it also starts a temporary reverse proxy to verify that access through the proxy works and page links stay relative; otherwise it prints `Caddy not found: proxy check skipped`.
 
 The integration tests (`tests/`) build fixture repositories in temporary directories via the `git` command line (fixed author and timestamps, `GIT_CONFIG_GLOBAL=/dev/null`, never touching global config or the network), then call the router in-process without listening on a port. **The tests need `git`; the application itself does not.**
 

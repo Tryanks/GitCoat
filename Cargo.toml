@@ -17,7 +17,7 @@ name = "gitcoat"
 path = "src/main.rs"
 
 [dependencies]
-topcoat = { version = "=0.8.1", default-features = false, features = ["asset", "router", "serve", "view"] }
+topcoat = { version = "=0.8.1", default-features = false, features = ["router", "serve", "view"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "process", "io-util", "signal", "sync", "time", "fs"] }
 clap = { version = "4", features = ["derive", "env"] }
 tracing = "0.1"

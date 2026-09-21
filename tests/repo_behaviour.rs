@@ -650,21 +650,18 @@ async fn path_traversal_never_yields_file_content() {
         );
     }
 
-    // Static asset handler.
+    // Static file handler: only the two embedded names exist, nothing is
+    // read from disk.
     for url in [
-        "/_topcoat/assets/../../Cargo.toml",
-        "/_topcoat/assets/..%2F..%2FCargo.toml",
-        "/_topcoat/assets/%2e%2e/%2e%2e/Cargo.toml",
-        "/_topcoat/assets/../../../../etc/passwd",
+        "/_static/../../Cargo.toml",
+        "/_static/..%2F..%2FCargo.toml",
+        "/_static/%2e%2e/%2e%2e/Cargo.toml",
+        "/_static/../../../../etc/passwd",
     ] {
         let response = get(&app, url).await;
-        let leaked = response.status == StatusCode::OK
-            && (response.body.contains("[package]") || response.body.contains("root:"));
-        assert!(
-            !leaked,
-            "{url} served a file outside the bundle: {}",
-            response.status
-        );
+        assert_eq!(response.status, StatusCode::NOT_FOUND, "{url}");
+        assert!(!response.body.contains("[package]"), "{url}");
+        assert!(!response.body.contains("root:"), "{url}");
         assert!(!response.body.contains("name = \"gitcoat\""), "{url}");
     }
 }

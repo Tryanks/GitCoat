@@ -1,70 +1,20 @@
 //! Shared helpers for the integration tests: repository fixtures, an
-//! in-process router with a test asset bundle, and a tiny HTTP client.
+//! in-process router and a tiny HTTP client.
 
 #![allow(dead_code)]
 
 pub mod fixtures;
 
-use std::{
-    collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
-    path::{Path, PathBuf},
-    sync::{Arc, OnceLock},
-};
+use std::{path::Path, sync::Arc};
 
 use gitcoat::{
-    app::{
-        AppState,
-        layout::{APP_CSS, APP_JS},
-        router,
-    },
+    app::{AppState, router},
     config::Config,
     git::Repo,
 };
 use http::{HeaderMap, StatusCode};
 use http_body_util::BodyExt;
-use topcoat::{
-    asset::{AssetBundle, MANIFEST_NAME, MANIFEST_VERSION, Manifest, ManifestEntry},
-    router::{Body, Router},
-};
-
-/// The asset bundle used by every test router: a manifest describing the
-/// real `static/` files under the asset ids this build declared.
-fn test_assets() -> &'static Path {
-    static DIR: OnceLock<PathBuf> = OnceLock::new();
-    DIR.get_or_init(|| {
-        let exe = std::env::current_exe().expect("current exe");
-        let mut hasher = DefaultHasher::new();
-        exe.hash(&mut hasher);
-        let dir =
-            std::env::temp_dir().join(format!("gitcoat-test-assets-{:016x}", hasher.finish()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).expect("create asset dir");
-
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let entries = [
-            (APP_CSS, "static/app.css", "app-test.css", "text/css"),
-            (APP_JS, "static/app.js", "app-test.js", "text/javascript"),
-        ];
-        let mut manifest = Manifest {
-            version: MANIFEST_VERSION,
-            assets: Vec::new(),
-        };
-        for (asset, source, file, content_type) in entries {
-            std::fs::copy(root.join(source), dir.join(file)).expect("copy static file");
-            manifest.assets.push(ManifestEntry {
-                id: asset.id(),
-                file: file.to_owned(),
-                hash: "test".to_owned(),
-                content_type: content_type.to_owned(),
-            });
-        }
-        manifest
-            .save(dir.join(MANIFEST_NAME))
-            .expect("write manifest");
-        dir
-    })
-}
+use topcoat::router::{Body, Router};
 
 /// Configuration a test app runs with.
 pub fn test_config(repo_path: &Path) -> Config {
@@ -74,7 +24,6 @@ pub fn test_config(repo_path: &Path) -> Config {
         name: None,
         description: Some("A test repository".to_owned()),
         clone_url: Some("git@example.com:test/repo.git".to_owned()),
-        assets_dir: None,
     }
 }
 
@@ -86,14 +35,10 @@ pub fn test_app(repo_path: &Path) -> Router {
 /// Build the application router with an explicit configuration.
 pub fn test_app_with(config: Config) -> Router {
     let repo = Repo::open(&config.repo).expect("open fixture repository");
-    let assets = AssetBundle::load_dir(test_assets()).expect("load test asset bundle");
-    router(
-        AppState {
-            config,
-            repo: Arc::new(repo),
-        },
-        assets,
-    )
+    router(AppState {
+        config,
+        repo: Arc::new(repo),
+    })
 }
 
 /// A collected response.
@@ -145,8 +90,17 @@ pub async fn get_with_headers(router: &Router, path: &str, headers: &[(&str, &st
 
 /// The href of the stylesheet `<link>` in an HTML page.
 pub fn stylesheet_href(html: &str) -> Option<String> {
-    let start = html.find("<link rel=\"stylesheet\" href=\"")?;
-    let rest = &html[start + "<link rel=\"stylesheet\" href=\"".len()..];
+    attribute_after(html, "<link rel=\"stylesheet\" href=\"")
+}
+
+/// The src of the deferred `<script>` in an HTML page.
+pub fn script_src(html: &str) -> Option<String> {
+    attribute_after(html, "<script src=\"")
+}
+
+fn attribute_after(html: &str, prefix: &str) -> Option<String> {
+    let start = html.find(prefix)?;
+    let rest = &html[start + prefix.len()..];
     let end = rest.find('"')?;
     Some(rest[..end].to_owned())
 }

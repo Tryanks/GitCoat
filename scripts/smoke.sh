@@ -62,7 +62,7 @@ free_port() {
 fetch() {
     body_file="$TMP/body"
     headers_file="$TMP/headers"
-    status="$(curl -sS -o "$body_file" -D "$headers_file" -w '%{http_code}' "$1" || echo 000)"
+    status="$(curl -sS --path-as-is -o "$body_file" -D "$headers_file" -w '%{http_code}' "$1" || echo 000)"
 }
 
 header_is() {
@@ -120,7 +120,6 @@ if [ "${SKIP_BUILD:-0}" != "1" ]; then
     "$ROOT/scripts/build.sh"
 fi
 test -x "$ROOT/dist/gitcoat" || { echo "error: dist/gitcoat missing (run without SKIP_BUILD)"; exit 1; }
-test -f "$ROOT/dist/assets/manifest.toml" || { echo "error: dist/assets/manifest.toml missing"; exit 1; }
 
 # ---------------------------------------------------------------------------
 # 2. fixture repository (git CLI only, isolated from any user config)
@@ -160,16 +159,17 @@ HEAD_OID="$(g rev-parse HEAD)"
 echo "   repo: $REPO (HEAD $HEAD_OID)"
 
 # ---------------------------------------------------------------------------
-# 3. deploy copy + start from a different cwd
+# 3. deploy copy (the single binary, alone in an empty directory) + start from
+#    a different cwd
 # ---------------------------------------------------------------------------
 DEPLOY="$TMP/deploy"
 mkdir -p "$DEPLOY"
-cp -R "$ROOT/dist" "$DEPLOY/dist"
+cp "$ROOT/dist/gitcoat" "$DEPLOY/gitcoat"
 
 APP_PORT="$(free_port)"
 BASE="http://127.0.0.1:$APP_PORT"
-echo "== starting $DEPLOY/dist/gitcoat on $BASE (cwd /tmp)"
-(cd /tmp && exec "$DEPLOY/dist/gitcoat" --repo "$REPO" --bind "127.0.0.1:$APP_PORT" \
+echo "== starting $DEPLOY/gitcoat on $BASE (cwd /tmp)"
+(cd /tmp && exec "$DEPLOY/gitcoat" --repo "$REPO" --bind "127.0.0.1:$APP_PORT" \
     --description "smoke description" --clone-url "git@example.com:smoke/repo.git") \
     >"$TMP/gitcoat.log" 2>&1 &
 app_pid=$!
@@ -198,12 +198,15 @@ check "GET /tree (bad path)" "$BASE/tree?path=..%2Fx" 400 "Bad request"
 check "GET /tree (unknown ref)" "$BASE/tree?ref=refs%2Fheads%2Fnope" 404 "Ref not found"
 check "GET /nope" "$BASE/nope" 404 "Page not found"
 
-# Assets: URLs come from the served HTML, so they match this exact build.
-CSS_URL="$(grep -oE 'href="/_topcoat/assets/[^"]+\.css"' "$HOME_HTML" | head -1 | sed -E 's/^href="//; s/"$//')"
-JS_URL="$(grep -oE 'src="/_topcoat/assets/[^"]+\.js"' "$HOME_HTML" | head -1 | sed -E 's/^src="//; s/"$//')"
+# Static files are embedded in the binary; their content-hashed URLs come from
+# the served HTML, so they match this exact build.
+CSS_URL="$(grep -oE 'href="/_static/[^"]+\.css"' "$HOME_HTML" | head -1 | sed -E 's/^href="//; s/"$//')"
+JS_URL="$(grep -oE 'src="/_static/[^"]+\.js"' "$HOME_HTML" | head -1 | sed -E 's/^src="//; s/"$//')"
 if [ -n "$CSS_URL" ]; then
     check "GET css asset" "$BASE$CSS_URL" 200 ":root"
     if header_is content-type 'text/css'; then ok "css content-type"; else ko "css content-type"; fi
+    if header_is cache-control 'public, max-age=31536000, immutable'; then ok "css immutable"; else ko "css cache-control"; fi
+    if header_is x-content-type-options 'nosniff'; then ok "css nosniff"; else ko "css X-Content-Type-Options"; fi
 else
     ko "no stylesheet URL found in /"
 fi
@@ -213,7 +216,9 @@ if [ -n "$JS_URL" ]; then
 else
     ko "no script URL found in /"
 fi
-check "asset traversal" "$BASE/_topcoat/assets/../../Cargo.toml" 404
+check "unknown static name" "$BASE/_static/app.css" 404
+check "static traversal" "$BASE/_static/../Cargo.toml" 404
+check "static traversal (deep)" "$BASE/_static/../../Cargo.toml" 404
 
 # Routes provided by the blob/raw and commits/commit pages.
 check "GET /blob (markdown)" "$BASE/blob?ref=refs%2Fheads%2Fmain&path=README.md" 200 "Smoke test repository" "markdown-body"

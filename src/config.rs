@@ -37,10 +37,6 @@ pub struct Config {
     /// Clone URL offered to visitors (shown with a copy button).
     #[arg(long, env = "GITCOAT_CLONE_URL", value_name = "URL")]
     pub clone_url: Option<String>,
-
-    /// Directory holding the asset bundle (defaults to `assets/` next to the executable).
-    #[arg(long, env = "GITCOAT_ASSETS_DIR", value_name = "DIR")]
-    pub assets_dir: Option<PathBuf>,
 }
 
 impl Config {

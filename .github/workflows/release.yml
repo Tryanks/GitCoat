@@ -1,0 +1,150 @@
+name: Release
+
+# Builds one self-contained `gitcoat` binary per target for a `v*` tag and
+# publishes the archives plus SHA256SUMS on the GitHub Release for that tag.
+# `workflow_dispatch` re-runs the same pipeline for an existing tag.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build and publish, e.g. v0.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      TARGET: ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux and FreeBSD are built with `cross` (Docker images with the
+          # target's C toolchain) so glibc builds link against an old glibc
+          # and non-x86 targets get a linker.
+          - { target: x86_64-unknown-linux-gnu,       os: ubuntu-latest, cross: true,  run: true }
+          - { target: x86_64-unknown-linux-musl,      os: ubuntu-latest, cross: true,  run: true }
+          - { target: aarch64-unknown-linux-gnu,      os: ubuntu-latest, cross: true }
+          - { target: aarch64-unknown-linux-musl,     os: ubuntu-latest, cross: true }
+          - { target: armv7-unknown-linux-musleabihf, os: ubuntu-latest, cross: true }
+          - { target: riscv64gc-unknown-linux-gnu,    os: ubuntu-latest, cross: true }
+          - { target: loongarch64-unknown-linux-gnu,  os: ubuntu-latest, cross: true }
+          - { target: x86_64-unknown-freebsd,         os: ubuntu-latest, cross: true }
+          - { target: aarch64-apple-darwin,           os: macos-14,      run: true }
+          - { target: x86_64-apple-darwin,            os: macos-14 }
+          - { target: x86_64-pc-windows-msvc,         os: windows-latest, run: true }
+          - { target: aarch64-pc-windows-msvc,        os: windows-latest }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Check that Cargo.toml matches the tag
+        shell: bash
+        run: |
+          version="${TAG#v}"
+          cargo_version="$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)"
+          echo "tag=$TAG cargo=$cargo_version"
+          test "$version" = "$cargo_version"
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.1 # keep in sync with rust-toolchain.toml
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.cross
+        uses: taiki-e/install-action@cross
+
+      - name: Build
+        shell: bash
+        run: |
+          if [ "${{ matrix.cross }}" = "true" ]; then
+            cross build --release --locked --bin gitcoat --target "$TARGET"
+          else
+            cargo build --release --locked --bin gitcoat --target "$TARGET"
+          fi
+
+      - name: Run the binary
+        if: matrix.run
+        shell: bash
+        run: |
+          bin="target/$TARGET/release/gitcoat"
+          [[ "$TARGET" == *windows* ]] && bin="$bin.exe"
+          "$bin" --version
+
+      - name: Package
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          name="gitcoat-${version}-${TARGET}"
+          bin="gitcoat"
+          [[ "$TARGET" == *windows* ]] && bin="gitcoat.exe"
+          mkdir -p "pkg/$name"
+          cp "target/$TARGET/release/$bin" LICENSE README.md "pkg/$name/"
+          # The release profile already strips symbols (`strip = true`).
+          if [[ "$TARGET" == *windows* ]]; then
+            archive="$name.zip"
+            (cd "pkg/$name" && 7z a -tzip "../../$archive" "$bin" LICENSE README.md >/dev/null)
+          else
+            archive="$name.tar.gz"
+            tar -C "pkg/$name" -czf "$archive" "$bin" LICENSE README.md
+          fi
+          ls -l "$archive"
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.archive }}
+          path: ${{ steps.package.outputs.archive }}
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        run: |
+          cd dist
+          rm -f SHA256SUMS
+          sha256sum gitcoat-* > SHA256SUMS
+          cat SHA256SUMS
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: GitCoat ${{ env.TAG }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: dist/*

@@ -1,5 +1,6 @@
-//! The `gitcoat` binary: parse configuration, open the repository, load the
-//! asset bundle and serve.
+//! The `gitcoat` binary: parse configuration, open the repository and serve.
+//! The stylesheet and script are compiled in, so the executable is
+//! self-contained.
 
 use std::{process::ExitCode, sync::Arc};
 
@@ -9,7 +10,6 @@ use gitcoat::{
     git::Repo,
 };
 use tokio::net::TcpListener;
-use topcoat::asset::AssetBundle;
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -40,18 +40,6 @@ async fn run(config: Config) -> Result<(), String> {
         "opened repository"
     );
 
-    let assets = match &config.assets_dir {
-        Some(dir) => AssetBundle::load_dir(dir)
-            .map_err(|e| format!("cannot load the asset bundle from {}: {e}", dir.display()))?,
-        None => AssetBundle::load().map_err(|e| {
-            format!(
-                "cannot load the asset bundle: {e}. Run `topcoat asset bundle` (or scripts/build.sh) so \
-                 an `assets/` directory sits next to the executable, or pass --assets-dir"
-            )
-        })?,
-    };
-    tracing::info!(dir = %assets.dir().display(), "loaded asset bundle");
-
     let listener = TcpListener::bind(config.bind).await.map_err(|e| {
         if e.kind() == std::io::ErrorKind::AddrInUse {
             format!("cannot listen on {}: address already in use", config.bind)
@@ -66,7 +54,7 @@ async fn run(config: Config) -> Result<(), String> {
         config,
         repo: Arc::new(repo),
     };
-    topcoat::serve(listener, router(state, assets))
+    topcoat::serve(listener, router(state))
         .await
         .map_err(|e| format!("server error: {e}"))?;
     tracing::info!("shut down");

@@ -2,12 +2,9 @@
 
 use std::sync::Arc;
 
-use topcoat::{
-    asset::{AssetConfig, RouterBuilderAssetExt},
-    router::{
-        Router,
-        error::{bad_request, not_found},
-    },
+use topcoat::router::{
+    Router,
+    error::{bad_request, not_found},
 };
 
 use crate::{
@@ -25,6 +22,7 @@ pub mod lang;
 pub mod layout;
 pub mod raw;
 pub mod refpicker;
+pub mod static_files;
 pub mod tree;
 pub mod url;
 
@@ -35,11 +33,10 @@ pub struct AppState {
     pub repo: Arc<Repo>,
 }
 
-/// Build the router with every page and route registered by hand.
-///
-/// `assets` is the bundle produced by `topcoat asset bundle` for this very
-/// build (rendering an asset that is not in the bundle panics).
-pub fn router(state: AppState, assets: impl Into<AssetConfig>) -> Router {
+/// Build the router with every page and route registered by hand. The
+/// stylesheet and script are compiled in and served by
+/// [`static_files::static_file`], so nothing is read from disk at runtime.
+pub fn router(state: AppState) -> Router {
     Router::builder()
         .layout(layout::root_layout)
         .page(home::home)
@@ -51,7 +48,7 @@ pub fn router(state: AppState, assets: impl Into<AssetConfig>) -> Router {
         .route(healthz::healthz)
         .route(lang::lang)
         .route(raw::raw)
-        .assets(assets)
+        .route(static_files::static_file)
         .app_context(state)
         .build()
 }

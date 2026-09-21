@@ -1,0 +1,4 @@
+# Images for `cross` (used by .github/workflows/release.yml). The cross release
+# has no image for loongarch64 yet; the one from its main branch works.
+[target.loongarch64-unknown-linux-gnu]
+image = "ghcr.io/cross-rs/loongarch64-unknown-linux-gnu:main"
