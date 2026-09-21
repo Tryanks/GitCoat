@@ -20,6 +20,30 @@ GitCoat's scope is deliberately narrow. The following features are **not** provi
 - Git LFS
 - A plugin system
 
+## Screenshots
+
+All screenshots show GitCoat browsing its own repository.
+
+Repository home: directory tree, latest commit and rendered README.
+
+![Repository home](docs/screenshots/home.png)
+
+File view with syntax highlighting, line anchors, raw and permalink actions.
+
+![File view](docs/screenshots/blob.png)
+
+Commit history with stable pagination.
+
+![Commit history](docs/screenshots/commits.png)
+
+Commit page with per-file unified diff (dark theme).
+
+![Commit diff](docs/screenshots/commit.png)
+
+Dark theme on the repository home.
+
+![Repository home, dark theme](docs/screenshots/home-dark.png)
+
 ## Tech stack and verified versions
 
 | Component | Version | Notes |
